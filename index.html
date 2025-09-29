@@ -634,7 +634,8 @@
         function openModal(tool) {
             modalIconEl.innerHTML = tool.icon;
             modalNameEl.textContent = tool.name;
-            modalDescriptionEl.textContent = tool.description;
+            modalDescriptionEl.textContent = `${tool.description} \n ${tool.modalLinks.length} Ferramentas Encontradas!`;
+            // modalDescriptionEl.textContent = tool.description + `${tool.modalLinks.length} Ferramentas Encontradas!`;
             
             // Renderiza os links do modal
             modalLinksEl.innerHTML = '';
@@ -646,6 +647,9 @@
                 linkEl.target = '_blank';
                 linkEl.rel = 'noopener noreferrer';
                 modalLinksEl.appendChild(linkEl);
+                linkEl.addEventListener('click', function(event) {
+                  closeModal();
+                });
               });
             }
 
@@ -681,6 +685,7 @@
         overlay.addEventListener('click', closeNav);
 
         // --- Lógica de Geração e Filtro de Cards ---
+        
         function renderTools(toolsToRender) {
           toolGrid.innerHTML = '';
           if (toolGrid) {
@@ -731,12 +736,14 @@
                 const tool = TOOLS.find(t => t.id === toolId);
                 if (tool) {
                     openModal(tool);
+// console.log(tool.modalLinks.length);
                 }
             }
         });
 
         // --- Inicialização ---
         renderTools(TOOLS);
+        
       });
     </script>
     <script> 
