@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -5,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Ferramentas</title>
     <meta name="description" content="Uma interface de usuário moderna que exibe uma coleção de ferramentas, cada uma representada por um ícone interativo.">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
       /* --- Reset e Configurações Globais --- */
       :root {
@@ -48,6 +50,82 @@
         background: #475569; /* slate-600 */
       }
       
+      /* --- Menu Lateral (Sidenav) --- */
+      .header-bar {
+        display: flex;
+        align-items: center;
+        padding: 10px 20px;
+        background-color: var(--color-slate-800);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        height: 60px;
+      }
+
+      .open-btn {
+        font-size: 30px;
+        cursor: pointer;
+        color: var(--color-slate-100);
+        transition: color 0.3s;
+      }
+
+      .open-btn:hover {
+        color: var(--color-cyan-300);
+      }
+
+      .sidenav {
+        height: 100%;
+        width: 0;
+        position: fixed;
+        z-index: 1001;
+        top: 0;
+        left: 0;
+        background-color: #111;
+        overflow-x: hidden;
+        transition: 0.5s;
+        padding-top: 60px;
+      }
+
+      .sidenav a {
+        padding: 8px 8px 8px 32px;
+        text-decoration: none;
+        font-size: 25px;
+        color: #818181;
+        display: block;
+        transition: 0.3s;
+      }
+
+      .sidenav a:hover {
+        color: var(--color-white);
+      }
+
+      .sidenav .closebtn {
+        position: absolute;
+        top: 0;
+        right: 25px;
+        font-size: 36px;
+        margin-left: 50px;
+      }
+
+      .sidenav-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.7);
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.5s, visibility 0s 0.5s;
+      }
+      
+      .sidenav-overlay.active {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.5s;
+      }
+
       /* --- Layout Principal --- */
       .container {
         max-width: 1280px;
@@ -82,7 +160,39 @@
       main {
         margin-top: 3rem;
       }
+
+      /* --- Campo de Filtro e Contagem --- */
+      .filter-container {
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      #searchInput {
+        width: 100%;
+        max-width: 500px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        background-color: var(--color-slate-800);
+        border: 1px solid var(--color-slate-700);
+        border-radius: 0.5rem;
+        color: var(--color-slate-100);
+        transition: border-color 0.3s, box-shadow 0.3s;
+      }
+
+      #searchInput:focus {
+        outline: none;
+        border-color: var(--color-cyan-400);
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+      }
       
+      #tool-count {
+        text-align: center;
+        color: var(--color-slate-400);
+        margin-bottom: 2rem;
+        height: 1.5rem;
+      }
+
       footer {
         text-align: center;
         margin-top: 4rem;
@@ -95,6 +205,18 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1.5rem;
+      }
+
+      /* --- Animação de Entrada dos Cards --- */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       /* --- Cartão de Ferramenta --- */
@@ -112,12 +234,38 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
         text-decoration: none;
         transition: all 0.3s ease-in-out;
+        opacity: 0; /* Começa invisível para a animação */
+        animation: fadeInUp 0.5s ease-out forwards;
+        position: relative;
       }
 
       .tool-card:hover {
         transform: scale(1.05);
         background-color: rgba(51, 65, 85, 0.7);
-        box-shadow: 0 0 15px 0 rgba(6, 182, 212, 0.1);
+        box-shadow: 0 8px 25px rgba(34, 211, 238, 0.3);
+      }
+
+      .tool-card:active {
+        transform: scale(0.98);
+        transition-duration: 0.1s;
+      }
+      
+      .info-icon {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        z-index: 5;
+        cursor: pointer;
+        color: var(--color-slate-400);
+        transition: all 0.2s ease-in-out;
+      }
+      .info-icon svg {
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+      .info-icon:hover {
+        color: var(--color-white);
+        transform: scale(1.1);
       }
 
       .tool-card .icon-container {
@@ -162,8 +310,63 @@
         max-height: 5rem; /* Altura suficiente para a descrição */
         margin-top: 0.25rem;
       }
+      
+      /* --- Modal de Informações --- */
+      .modal {
+        position: fixed;
+        z-index: 1002;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        display: none; /* Inicia oculto */
+        align-items: center;
+        justify-content: center;
+      }
+      .modal.active {
+        display: flex;
+        animation: fadeIn 0.3s ease;
+      }
+      .modal-content {
+        background-color: var(--color-slate-800);
+        padding: 2rem;
+        border: 1px solid var(--color-slate-700);
+        border-radius: 0.75rem;
+        width: 90%;
+        max-width: 500px;
+        text-align: center;
+        position: relative;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+      }
+      .modal-icon {
+        color: var(--color-cyan-400);
+        margin-bottom: 1rem;
+      }
+      .modal-icon svg {
+        width: 4rem;
+        height: 4rem;
+      }
+      #modal-close {
+        color: #aaa;
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+      #modal-close:hover {
+        color: var(--color-white);
+      }
 
-      /* --- Layout Responsivo --- */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      /* --- Layout Responsivo (Grid) --- */
       @media (min-width: 640px) {
         .tool-grid {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -190,8 +393,39 @@
         }
       }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react/": "https://aistudiocdn.com/react@^19.1.1/"
+  }
+}
+</script>
 </head>
 <body>
+    <div id="sidenav-overlay" class="sidenav-overlay"></div>
+
+    <nav id="mySidenav" class="sidenav">
+      <a href="javascript:void(0)" id="closeBtn" class="closebtn">&times;</a>
+      <a href="#">Home</a>
+      <a href="#">News</a>
+      <a href="#">Contact</a>
+      <a href="#">About</a>
+    </nav>
+    
+    <div id="info-modal" class="modal">
+      <div class="modal-content">
+        <span id="modal-close">&times;</span>
+        <div id="modal-icon" class="modal-icon"></div>
+        <h2 id="modal-name"></h2>
+        <p id="modal-description"></p>
+      </div>
+    </div>
+
+    <header class="header-bar">
+      <span id="openBtn" class="open-btn">&#9776;</span>
+    </header>
 
     <div class="container">
       <header>
@@ -200,24 +434,29 @@
       </header>
       
       <main>
+        <div class="filter-container">
+          <input type="text" id="searchInput" placeholder="Filtrar ferramentas pelo nome...">
+        </div>
+        <div id="tool-count"></div>
         <div id="tool-grid" class="tool-grid">
           <!-- Os cartões de ferramentas serão inseridos aqui pelo JavaScript -->
         </div>
       </main>
       
-      <footer class="text-center mt-16 text-slate-500 text-sm">
+      <footer>
         <p>Desenvolvido com HTML, CSS & JavaScript.</p>
       </footer>
     </div>
 
     <script>
       document.addEventListener('DOMContentLoaded', () => {
+        // --- Constantes e Variáveis ---
         const TOOLS = [
           {
-            id: 'editor',
-            name: 'Editor de Código',
-            description: 'Escreva e edite trechos de código com destaque de sintaxe.',
-            href: '#',
+            id: 'roteiro',
+            name: 'Gerador de Roteiro',
+            description: 'Escreva, crie e edite roteiros virais para midias em vídeo.',
+            href: 'roteiro.html',
             icon: `
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
@@ -306,7 +545,7 @@
             id: 'analytics',
             name: 'Analytics',
             description: 'Visualize gráficos e métricas de dados importantes.',
-            href: '#',
+            href: 'roteiro.html',
             icon: `
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
@@ -317,34 +556,153 @@
             id: 'security',
             name: 'Segurança',
             description: 'Gerencie senhas e verifique a segurança de suas contas.',
-            href: '#',
+            href: 'roteiro.html',
             icon: `
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.286zm0 13.036h.008v.008h-.008v-.008z" />
               </svg>
             `,
           },
-          
+          {
+            id: 'book',
+            name: 'Livro',
+            description: 'Gerencie senhas e verifique a segurança de suas contas.',
+            href: 'roteiro.html',
+            icon: `
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5" />
+              </svg>	
+            `,
+          },
+          {
+            id: 'book2',
+            name: 'Livro 2',
+            description: 'Gerencie senhas e verifique a segurança de suas contas.',
+            href: 'roteiro.html',
+            icon: `
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
+              </svg>
+            `,
+          },
         ];
 
+        const openBtn = document.getElementById("openBtn");
+        const closeBtn = document.getElementById("closeBtn");
+        const sidenav = document.getElementById("mySidenav");
+        const overlay = document.getElementById("sidenav-overlay");
         const toolGrid = document.getElementById('tool-grid');
+        const searchInput = document.getElementById('searchInput');
+        const toolCountEl = document.getElementById('tool-count');
+        
+        // --- Lógica do Modal ---
+        const modal = document.getElementById('info-modal');
+        const modalCloseBtn = document.getElementById('modal-close');
+        const modalIconEl = document.getElementById('modal-icon');
+        const modalNameEl = document.getElementById('modal-name');
+        const modalDescriptionEl = document.getElementById('modal-description');
+        
+        function openModal(tool) {
+            modalIconEl.innerHTML = tool.icon;
+            modalNameEl.textContent = tool.name;
+            modalDescriptionEl.textContent = tool.description;
+            modal.classList.add('active');
+        }
+        
+        function closeModal() {
+            modal.classList.remove('active');
+        }
+        
+        modalCloseBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
 
-        if (toolGrid) {
-          TOOLS.forEach(tool => {
-            const card = `
-              <a href="${tool.href}" class="tool-card" aria-label="${tool.name}">
+        // --- Lógica do Sidenav ---
+        function openNav() {
+            sidenav.style.width = "250px";
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeNav() {
+            sidenav.style.width = "0";
+            overlay.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        openBtn.addEventListener('click', openNav);
+        closeBtn.addEventListener('click', closeNav);
+        overlay.addEventListener('click', closeNav);
+
+        // --- Lógica de Geração e Filtro de Cards ---
+        function renderTools(toolsToRender) {
+          toolGrid.innerHTML = '';
+          if (toolGrid) {
+            toolsToRender.forEach((tool, index) => {
+              const card = document.createElement('a');
+              card.href = tool.href;
+              card.className = 'tool-card';
+              card.setAttribute('aria-label', tool.name);
+              card.target = '_blank';
+              card.style.animationDelay = `${index * 0.05}s`;
+              
+              card.innerHTML = `
+                <div class="info-icon" data-tool-id="${tool.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                  </svg>
+                </div>
                 <div class="icon-container">
                   ${tool.icon}
                 </div>
                 <h3>${tool.name}</h3>
                 <p>${tool.description}</p>
-              </a>
-            `;
-            toolGrid.innerHTML += card;
-          });
+              `;
+              toolGrid.appendChild(card);
+            });
+          }
+          updateToolCount(toolsToRender.length);
         }
+
+        function updateToolCount(visibleCount) {
+          toolCountEl.textContent = `Exibindo ${visibleCount} de ${TOOLS.length} ferramentas.`;
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredTools = TOOLS.filter(tool => 
+                tool.name.toLowerCase().startsWith(searchTerm)
+            );
+            renderTools(filteredTools);
+        });
+
+        toolGrid.addEventListener('click', (e) => {
+            const infoIcon = e.target.closest('.info-icon');
+            if (infoIcon) {
+                e.preventDefault();
+                e.stopPropagation();
+                const toolId = infoIcon.dataset.toolId;
+                const tool = TOOLS.find(t => t.id === toolId);
+                if (tool) {
+                    openModal(tool);
+                }
+            }
+        });
+
+        // --- Inicialização ---
+        renderTools(TOOLS);
       });
     </script>
-
+    <script> 
+      var script = document.createElement('script'); 
+      script.src = 'https://cdn.jsdelivr.net/npm/eruda'; 
+      document.body.appendChild(script); 
+      script.onload = function () {
+         eruda.init();
+      }
+    </script>
 </body>
 </html>
