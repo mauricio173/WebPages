@@ -361,6 +361,28 @@
         color: var(--color-white);
       }
 
+      .modal-links {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--color-slate-700);
+      }
+      .modal-links a {
+        display: inline-block;
+        background-color: var(--color-slate-700);
+        color: var(--color-cyan-300);
+        padding: 0.6rem 1.2rem;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        margin: 0.25rem;
+        transition: background-color 0.2s, color 0.2s;
+        font-weight: 500;
+        font-size: 0.875rem;
+      }
+      .modal-links a:hover {
+        background-color: var(--color-cyan-400);
+        color: var(--color-slate-900);
+      }
+
       @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
@@ -420,6 +442,7 @@
         <div id="modal-icon" class="modal-icon"></div>
         <h2 id="modal-name"></h2>
         <p id="modal-description"></p>
+        <div id="modal-links" class="modal-links"></div>
       </div>
     </div>
 
@@ -462,6 +485,11 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
               </svg>
             `,
+            modalLinks: [
+              { name: 'Vidnoz', href: 'https://pt.vidnoz.com/gerador-de-roteiro.html' },
+              { name: 'Ahrefs', href: 'https://ahrefs.com/pt/writing-tools/script-generator' },
+              { name: 'Smodin', href: 'https://smodin.io/pt/escritor/roteiro-da-historia' },
+            ]
           },
           {
             id: 'calculator',
@@ -601,11 +629,26 @@
         const modalIconEl = document.getElementById('modal-icon');
         const modalNameEl = document.getElementById('modal-name');
         const modalDescriptionEl = document.getElementById('modal-description');
+        const modalLinksEl = document.getElementById('modal-links');
         
         function openModal(tool) {
             modalIconEl.innerHTML = tool.icon;
             modalNameEl.textContent = tool.name;
             modalDescriptionEl.textContent = tool.description;
+            
+            // Renderiza os links do modal
+            modalLinksEl.innerHTML = '';
+            if (tool.modalLinks && tool.modalLinks.length > 0) {
+              tool.modalLinks.forEach(link => {
+                const linkEl = document.createElement('a');
+                linkEl.href = link.href;
+                linkEl.textContent = link.name;
+                linkEl.target = '_blank';
+                linkEl.rel = 'noopener noreferrer';
+                modalLinksEl.appendChild(linkEl);
+              });
+            }
+
             modal.classList.add('active');
         }
         
