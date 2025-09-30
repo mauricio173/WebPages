@@ -1,3 +1,13 @@
+// --- Create Delete Button Dynamically ---
+const directDeleteBtn = document.createElement('button');
+directDeleteBtn.id = 'direct-delete-tool-btn';
+directDeleteBtn.className = 'btn btn-danger';
+directDeleteBtn.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:1rem;height:1rem">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"></path>
+    </svg>
+    <span>Excluir</span>
+`;
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- State, Constants & Initial Data ---
@@ -86,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.innerHTML = `
           <div class="info-icon" title="Gerenciar ${tool.name}">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-  <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
+  <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
   <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
 </svg>
           </div>
@@ -149,14 +159,64 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Modal Control ---
     function openModal(modalEl) { modalEl.classList.add('active'); }
-    function closeModal(modalEl) { modalEl.classList.remove('active'); }
+    function closeModal(modalEl) { 
+        modalEl.classList.remove('active');
+        if (modalEl === infoModal) {
+            // Clean up the dynamically added delete button
+            if (directDeleteBtn.parentElement) {
+                directDeleteBtn.parentElement.removeChild(directDeleteBtn);
+            }
+        }
+        if (modalEl === manageToolsModal) {
+            toolSelect.value = '';
+            // Manually trigger the change event to reset the UI state
+            toolSelect.dispatchEvent(new Event('change'));
+        }
+    }
 
     function openInfoModal(tool) {
         infoModal.dataset.currentToolId = tool.id;
         modalIconEl.innerHTML = tool.icon;
         modalNameEl.textContent = tool.name;
         modalDescriptionEl.textContent = tool.description;
-        modalLinksEl.innerHTML = '';
+        
+        modalLinksEl.innerHTML = ''; // Clear previous content
+
+        // Create a header container
+        const linksHeaderContainer = document.createElement('div');
+        linksHeaderContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;';
+
+        // Create the title
+        const linksTitle = document.createElement('h3');
+        linksTitle.textContent = 'Links';
+        linksTitle.style.cssText = 'margin: 0; color: var(--color-slate-200); font-size: 1.125rem; font-weight: 600;';
+
+        // Create the gear button
+        const manageLinksBtn = document.createElement('button');
+        manageLinksBtn.title = 'Gerenciar Links';
+        manageLinksBtn.style.cssText = 'background: none; border: none; color: var(--color-slate-400); cursor: pointer; padding: 0.25rem; line-height: 1; transition: color 0.2s;';
+        manageLinksBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 1.25rem; height: 1.25rem; display: block;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+        `;
+        manageLinksBtn.addEventListener('mouseenter', () => manageLinksBtn.style.color = 'var(--color-white)');
+        manageLinksBtn.addEventListener('mouseleave', () => manageLinksBtn.style.color = 'var(--color-slate-400)');
+        manageLinksBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeModal(infoModal);
+            openModal(manageToolsModal);
+            populateToolSelector();
+            toolSelect.value = tool.id;
+            toolSelect.dispatchEvent(new Event('change'));
+        });
+
+        linksHeaderContainer.appendChild(linksTitle);
+        linksHeaderContainer.appendChild(manageLinksBtn);
+        modalLinksEl.appendChild(linksHeaderContainer);
+
+        const linkListContainer = document.createElement('div');
         if (tool.modalLinks && tool.modalLinks.length > 0) {
           tool.modalLinks.forEach(link => {
             const linkEl = document.createElement('a');
@@ -164,13 +224,20 @@ document.addEventListener('DOMContentLoaded', () => {
             linkEl.textContent = link.name;
             linkEl.target = '_blank';
             linkEl.rel = 'noopener noreferrer';
-            modalLinksEl.appendChild(linkEl);
+            linkListContainer.appendChild(linkEl);
           });
-        } else if (tool.modalLinks.length < 1) {
+        } else {
             const noLinkEl = document.createElement('p');
-            noLinkEl.textContent = "Não existe nenhuma ferramenta adicionada!";
-            modalLinksEl.appendChild(noLinkEl);
+            noLinkEl.textContent = "Nenhum link adicionado.";
+            noLinkEl.style.cssText = 'font-size: 0.875rem; color: var(--color-slate-400); margin: 0;';
+            linkListContainer.appendChild(noLinkEl);
         }
+        modalLinksEl.appendChild(linkListContainer);
+        
+        // Add action buttons
+        const modalActions = infoModal.querySelector('.modal-actions');
+        modalActions.appendChild(directDeleteBtn);
+
         openModal(infoModal);
     }
 
@@ -360,6 +427,24 @@ document.addEventListener('DOMContentLoaded', () => {
             linksManagementSection.style.display = 'none';
             editToolBtn.disabled = true;
             deleteToolBtn.disabled = true;
+        }
+    });
+
+    directDeleteBtn.addEventListener('click', () => {
+        const toolId = infoModal.dataset.currentToolId;
+        const tool = TOOLS.find(t => t.id === toolId);
+        if (tool && confirm(`Tem certeza que deseja excluir a ferramenta "${tool.name}"?`)) {
+            TOOLS = TOOLS.filter(t => t.id !== toolId);
+            saveTools();
+            renderAll();
+            closeModal(infoModal);
+
+            if (toolSelect.value === toolId) {
+                toolSelect.value = '';
+                linksManagementSection.style.display = 'none';
+                editToolBtn.disabled = true;
+                deleteToolBtn.disabled = true;
+            }
         }
     });
     
