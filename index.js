@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.398.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272.806.108-1.204-.165-.397-.506-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
             </svg>
-        `;
+        `; 
         manageLinksBtn.addEventListener('mouseenter', () => manageLinksBtn.style.color = 'var(--color-white)');
         manageLinksBtn.addEventListener('mouseleave', () => manageLinksBtn.style.color = 'var(--color-slate-400)');
         manageLinksBtn.addEventListener('click', (e) => {
@@ -258,6 +258,18 @@ document.addEventListener('DOMContentLoaded', () => {
         formFields.innerHTML = state.fields;
         openModal(formModal);
 
+        formFields.addEventListener('click', e => {
+            if (e.target.id === 'add-link-field-btn') {
+                const container = document.getElementById('dynamic-links-container');
+                if (container) {
+                    container.appendChild(createLinkFieldGroup());
+                }
+            }
+            if (e.target.closest('.remove-link-field-btn')) {
+                e.target.closest('.link-field-group').remove();
+            }
+        });
+
         const iconPicker = document.getElementById('iconPicker');
         if (iconPicker) {
             renderIconPicker(iconPicker);
@@ -275,20 +287,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function createLinkFieldGroup(link = { name: '', href: '' }) {
+        const div = document.createElement('div');
+        div.className = 'link-field-group';
+        div.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;';
+        div.innerHTML = `
+            <input type="text" class="link-name-input" placeholder="Nome do Link" value="${link.name}" style="flex: 1;">
+            <input type="text" class="link-url-input" placeholder="URL do Link" value="${link.href}" style="flex: 2;" list="url-suggestions">
+            <button type="button" class="btn btn-danger remove-link-field-btn" style="padding: 0.5rem;">X</button>
+        `;
+        return div;
+    }
+
     toolLinkForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(toolLinkForm);
         const { mode, toolId, linkIndex } = currentFormState;
 
         if (mode === 'add-tool' || mode === 'edit-tool') {
+            const modalLinks = [];
+            const linkGroups = formFields.querySelectorAll('.link-field-group');
+            linkGroups.forEach(group => {
+                const nameInput = group.querySelector('.link-name-input');
+                const urlInput = group.querySelector('.link-url-input');
+                if (nameInput && urlInput && nameInput.value && urlInput.value) {
+                    modalLinks.push({ name: nameInput.value, href: urlInput.value });
+                }
+            });
+
             const toolData = {
                 id: mode === 'add-tool' ? `tool-${Date.now()}` : toolId,
                 name: formData.get('name'),
                 description: formData.get('description'),
                 href: formData.get('href'),
                 icon: formData.get('icon'),
-                modalLinks: mode === 'add-tool' ? [] : TOOLS.find(t=>t.id === toolId).modalLinks
+                modalLinks: modalLinks
             };
+
             if (mode === 'add-tool') {
                 TOOLS.push(toolData);
             } else {
@@ -383,16 +418,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const getToolFormFields = (tool = {}) => `
-      <div class="form-group"><label for="name">Nome</label><input type="text" name="name" value="${tool.name || ''}" required></div>
-      <div class="form-group"><label for="description">Descrição</label><input type="text" name="description" value="${tool.description || ''}" required></div>
-      <div class="form-group"><label for="href">URL Principal (obsoleto)</label><input type="text" name="href" value="${tool.href || '#'}" required></div>
-      <div class="form-group"><label for="icon">Ícone (SVG ou HTML)</label><textarea name="icon" id="icon-textarea" required>${tool.icon || ''}</textarea></div>
-      <div class="form-group">
-        <label>Ou selecione um ícone pré-definido</label>
-        <div id="iconPicker"></div>
-      </div>
-    `;
+    const getToolFormFields = (tool = {}) => {
+        const createLinkFieldString = (link = { name: '', href: '' }) => `
+            <div class="link-field-group" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
+                <input type="text" class="link-name-input" placeholder="Nome do Link" value="${link.name || ''}" style="flex: 1;">
+                <input type="text" class="link-url-input" placeholder="URL do Link" value="${link.href || ''}" style="flex: 2;" list="url-suggestions">
+                <button type="button" class="btn btn-danger remove-link-field-btn" style="padding: 0.5rem;">X</button>
+            </div>
+        `;
+    
+        let linksHtml = (tool.modalLinks || []).map(createLinkFieldString).join('');
+    
+        // If it's a new tool, add a blank link field by default.
+        if (!tool.id) {
+            linksHtml = createLinkFieldString();
+        }
+    
+        return `
+          <div class="form-group">
+            <label for="name">Nome da Ferramenta</label>
+            <input type="text" name="name" value="${tool.name || ''}" required>
+          </div>
+          <div class="form-group">
+            <label for="description">Descrição</label>
+            <input type="text" name="description" value="${tool.description || ''}" required>
+          </div>
+          
+          <fieldset style="border: 1px solid var(--color-slate-700); padding: 1rem; border-radius: 0.5rem; margin-top: 1.5rem; margin-bottom: 1.5rem;">
+            <legend style="padding: 0 0.5rem; color: var(--color-slate-300); font-size: 0.875rem; width: auto;">Links</legend>
+            
+            
+            <datalist id="url-suggestions"><option value="https://heroicons.com/"></datalist>
+  
+            <div class="form-group" style="margin-bottom: 0;">
+              <label>Links Adicionais (para o modal)</label>
+              <div id="dynamic-links-container">${linksHtml}</div>
+              <button type="button" id="add-link-field-btn" class="btn btn-secondary" style="margin-top: 0.5rem;">Adicionar Link</button>
+            </div>
+          </fieldset>
+          
+          <div class="form-group">
+            <label for="icon">Ícone (SVG ou HTML)</label>
+            <textarea name="icon" id="icon-textarea" required>${tool.icon || ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Ou selecione um ícone pré-definido</label>
+            <div id="iconPicker"></div>
+          </div>
+        `;
+    };
+    
 
     addToolBtn.addEventListener('click', () => {
         openFormModal({
