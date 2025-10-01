@@ -448,7 +448,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <legend style="padding: 0 0.5rem; color: var(--color-slate-300); font-size: 0.875rem; width: auto;">Links</legend>
             
             
-            <datalist id="url-suggestions"><option value="https://heroicons.com/"></datalist>
+            <datalist id="url-suggestions">
+                <option value="https://heroicons.com/">
+                <option value="https://mauricio173.github.io/webpages/">
+            
+            </datalist>
   
             <div class="form-group" style="margin-bottom: 0;">
               <label>Links Adicionais (para o modal)</label>
