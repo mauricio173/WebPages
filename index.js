@@ -12,6 +12,8 @@ directDeleteBtn.innerHTML = `
 document.addEventListener('DOMContentLoaded', () => {
     // --- State, Constants & Initial Data ---
     let TOOLS = [];
+    let ALL_LINKS = [];
+    let DELETED_LINKS = [];
     let currentFormState = {};
 
     const FONT_AWESOME_ICONS = [
@@ -57,6 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const linksManagementSection = document.getElementById('links-management-section');
     const linksList = document.getElementById('links-list');
     const addLinkBtn = document.getElementById('add-link-btn');
+    const exportDataBtn = document.getElementById('export-data-btn');
+    const importDataBtn = document.getElementById('import-data-btn');
+    const importFileInput = document.getElementById('import-file-input');
 
     const formModal = document.getElementById('form-modal');
     const formModalTitle = document.getElementById('form-modal-title');
@@ -64,15 +69,67 @@ document.addEventListener('DOMContentLoaded', () => {
     const formFields = document.getElementById('form-fields');
     const formCancelBtn = document.getElementById('form-cancel-btn');
     const directEditToolBtn = document.getElementById('direct-edit-tool-btn');
+
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmModalTitle = document.getElementById('confirm-modal-title');
+    const confirmModalText = document.getElementById('confirm-modal-text');
+    const confirmModalCancelBtn = document.getElementById('confirm-modal-cancel-btn');
+    const confirmModalConfirmBtn = document.getElementById('confirm-modal-confirm-btn');
     
     // --- Data Persistence ---
-    function saveTools() {
-        localStorage.setItem('dashboardTools', JSON.stringify(TOOLS));
-    }
-
+    function saveTools() { localStorage.setItem('dashboardTools', JSON.stringify(TOOLS)); }
     function loadTools() {
         const storedTools = localStorage.getItem('dashboardTools');
         TOOLS = storedTools ? JSON.parse(storedTools) : [...DEFAULT_TOOLS];
+    }
+    function saveAllLinks() { localStorage.setItem('dashboardAllLinks', JSON.stringify(ALL_LINKS)); }
+    function loadAllLinks() {
+        const storedLinks = localStorage.getItem('dashboardAllLinks');
+        ALL_LINKS = storedLinks ? JSON.parse(storedLinks) : [];
+    }
+    function saveDeletedLinks() { localStorage.setItem('dashboardDeletedLinks', JSON.stringify(DELETED_LINKS)); }
+    function loadDeletedLinks() {
+        const storedLinks = localStorage.getItem('dashboardDeletedLinks');
+        DELETED_LINKS = storedLinks ? JSON.parse(storedLinks) : [];
+    }
+
+    // --- Link Management Logic ---
+    function addLinkToGlobalStore(url) {
+        if (!url || url === '#') return;
+        // Add to all links if not present
+        if (!ALL_LINKS.includes(url)) {
+            ALL_LINKS.push(url);
+        }
+        // Remove from deleted links if it's being re-added
+        const deletedIndex = DELETED_LINKS.indexOf(url);
+        if (deletedIndex > -1) {
+            DELETED_LINKS.splice(deletedIndex, 1);
+        }
+        saveAllLinks();
+        saveDeletedLinks();
+    }
+
+    function handleDeletedLink(url) {
+        if (!url || url === '#') return;
+        
+        // Check if the URL is still in use by any other tool
+        const isUrlInUse = TOOLS.some(tool => 
+            tool.modalLinks.some(link => link.href === url)
+        );
+
+        if (!isUrlInUse) {
+            // Remove from all links
+            const index = ALL_LINKS.indexOf(url);
+            if (index > -1) {
+                ALL_LINKS.splice(index, 1);
+            }
+            // Add to deleted links if not present
+            if (!DELETED_LINKS.includes(url)) {
+                DELETED_LINKS.push(url);
+            }
+            saveAllLinks();
+            saveDeletedLinks();
+        }
     }
 
     // --- Render Functions ---
@@ -81,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const filteredTools = TOOLS.filter(tool => tool.name.toLowerCase().includes(searchTerm));
         renderToolsGrid(filteredTools);
         populateToolSelector();
+        populateDatalist();
     }
 
     function renderToolsGrid(toolsToRender) {
@@ -124,6 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         toolSelect.value = currentVal;
     }
+
+    function populateDatalist() {
+        const datalist = document.getElementById('url-suggestions');
+        if (datalist) {
+            datalist.innerHTML = ALL_LINKS.map(link => `<option value="${link}"></option>`).join('');
+        }
+    }
     
     function renderLinksList(toolId) {
         const tool = TOOLS.find(t => t.id === toolId);
@@ -162,16 +227,53 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeModal(modalEl) { 
         modalEl.classList.remove('active');
         if (modalEl === infoModal) {
-            // Clean up the dynamically added delete button
+            // Limpe o botão Excluir dinamicamente adicionado
             if (directDeleteBtn.parentElement) {
                 directDeleteBtn.parentElement.removeChild(directDeleteBtn);
             }
         }
         if (modalEl === manageToolsModal) {
             toolSelect.value = '';
-            // Manually trigger the change event to reset the UI state
+            // Acionar manualmente o evento de mudança para redefinir o estado da interface do usuário
             toolSelect.dispatchEvent(new Event('change'));
         }
+    }
+    
+    function closeAllModals() {
+        document.querySelectorAll('.modal.active').forEach(modal => {
+            closeModal(modal);
+        });
+    }
+
+    function showConfirmModal(message, title = 'Confirmar Ação') {
+        return new Promise((resolve) => {
+            confirmModalTitle.textContent = title;
+            confirmModalText.textContent = message;
+            openModal(confirmModal);
+
+            const onConfirm = () => resolvePromise(true);
+            const onCancel = () => resolvePromise(false);
+            const onOverlayClick = (e) => {
+                if (e.target === confirmModal) onCancel();
+            };
+    
+            const resolvePromise = (value) => {
+                confirmModalConfirmBtn.removeEventListener('click', onConfirm);
+                confirmModalCancelBtn.removeEventListener('click', onCancel);
+                confirmModal.querySelector('.modal-close-btn').removeEventListener('click', onCancel);
+                confirmModal.removeEventListener('click', onOverlayClick);
+                closeModal(confirmModal);
+                resolve(value);
+            };
+    
+            confirmModalConfirmBtn.addEventListener('click', onConfirm);
+            confirmModalConfirmBtn.addEventListener('click', () => {
+                closeModal(manageToolsModal);
+            });
+            confirmModalCancelBtn.addEventListener('click', onCancel);
+            confirmModal.querySelector('.modal-close-btn').addEventListener('click', onCancel);
+            confirmModal.addEventListener('click', onOverlayClick);
+        });
     }
 
     function openInfoModal(tool) {
@@ -180,18 +282,18 @@ document.addEventListener('DOMContentLoaded', () => {
         modalNameEl.textContent = tool.name;
         modalDescriptionEl.textContent = tool.description;
         
-        modalLinksEl.innerHTML = ''; // Clear previous content
+        modalLinksEl.innerHTML = ''; // Limpar conteúdo anterior
 
-        // Create a header container
+        // Crie um contêiner de cabeçalho
         const linksHeaderContainer = document.createElement('div');
         linksHeaderContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;';
 
-        // Create the title
+        // Crie o título
         const linksTitle = document.createElement('h3');
         linksTitle.textContent = 'Links';
         linksTitle.style.cssText = 'margin: 0; color: var(--color-slate-200); font-size: 1.125rem; font-weight: 600;';
 
-        // Create the gear button
+        // Crie o botão de engrenagem
         const manageLinksBtn = document.createElement('button');
         manageLinksBtn.title = 'Gerenciar Links';
         manageLinksBtn.style.cssText = 'background: none; border: none; color: var(--color-slate-400); cursor: pointer; padding: 0.25rem; line-height: 1; transition: color 0.2s;';
@@ -215,24 +317,29 @@ document.addEventListener('DOMContentLoaded', () => {
         linksHeaderContainer.appendChild(linksTitle);
         linksHeaderContainer.appendChild(manageLinksBtn);
         modalLinksEl.appendChild(linksHeaderContainer);
+       
+        const linkList = document.createElement('ul');
+        linkList.id = 'info-modal-links-list'; // For styling
 
-        const linkListContainer = document.createElement('div');
         if (tool.modalLinks && tool.modalLinks.length > 0) {
-          tool.modalLinks.forEach(link => {
-            const linkEl = document.createElement('a');
-            linkEl.href = link.href;
-            linkEl.textContent = link.name;
-            linkEl.target = '_blank';
-            linkEl.rel = 'noopener noreferrer';
-            linkListContainer.appendChild(linkEl);
-          });
+            tool.modalLinks.forEach(link => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = link.href;
+                a.textContent = link.name;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.title = `${link.name} (${link.href})`;
+                li.appendChild(a);
+                linkList.appendChild(li);
+            });
         } else {
-            const noLinkEl = document.createElement('p');
-            noLinkEl.textContent = "Nenhum link adicionado.";
-            noLinkEl.style.cssText = 'font-size: 0.875rem; color: var(--color-slate-400); margin: 0;';
-            linkListContainer.appendChild(noLinkEl);
+            const li = document.createElement('li');
+            li.textContent = "Nenhum link adicionado.";
+            li.classList.add('no-links-item');
+            linkList.appendChild(li);
         }
-        modalLinksEl.appendChild(linkListContainer);
+        modalLinksEl.appendChild(linkList);
         
         // Add action buttons
         const modalActions = infoModal.querySelector('.modal-actions');
@@ -256,6 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFormState = state;
         formModalTitle.textContent = state.title;
         formFields.innerHTML = state.fields;
+        populateDatalist(); // Populate datalist when form is opened
         openModal(formModal);
 
         formFields.addEventListener('click', e => {
@@ -303,8 +411,19 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const formData = new FormData(toolLinkForm);
         const { mode, toolId, linkIndex } = currentFormState;
+        let oldLinkData = null;
 
+        if (mode === 'edit-tool' || mode === 'edit-link') {
+            const tool = TOOLS.find(t => t.id === toolId);
+            if (mode === 'edit-link') {
+                oldLinkData = { ...tool.modalLinks[linkIndex] };
+            }
+        }
+        
         if (mode === 'add-tool' || mode === 'edit-tool') {
+            const existingTool = TOOLS.find(t => t.id === toolId);
+            const oldLinks = existingTool ? existingTool.modalLinks.map(l => l.href) : [];
+
             const modalLinks = [];
             const linkGroups = formFields.querySelectorAll('.link-field-group');
             linkGroups.forEach(group => {
@@ -315,30 +434,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // Add new links to global store
+            modalLinks.forEach(link => addLinkToGlobalStore(link.href));
+
             const toolData = {
                 id: mode === 'add-tool' ? `tool-${Date.now()}` : toolId,
                 name: formData.get('name'),
                 description: formData.get('description'),
-                href: formData.get('href'),
+                href: '#',
                 icon: formData.get('icon'),
                 modalLinks: modalLinks
             };
 
             if (mode === 'add-tool') {
                 TOOLS.push(toolData);
+                saveTools();
+                renderAll();
+                closeAllModals();
+                return;
             } else {
                 const index = TOOLS.findIndex(t => t.id === toolId);
                 TOOLS[index] = toolData;
+                
+                // Check for removed links
+                const newLinks = modalLinks.map(l => l.href);
+                oldLinks.forEach(oldUrl => {
+                    if (!newLinks.includes(oldUrl)) {
+                        handleDeletedLink(oldUrl);
+                    }
+                });
             }
         }
         
         if (mode === 'add-link' || mode === 'edit-link') {
             const tool = TOOLS.find(t => t.id === toolId);
             const linkData = { name: formData.get('name'), href: formData.get('href') };
+            
+            addLinkToGlobalStore(linkData.href);
+
             if (mode === 'add-link') {
                 tool.modalLinks.push(linkData);
+                closeModal(manageToolsModal);
             } else {
                 tool.modalLinks[linkIndex] = linkData;
+                if (oldLinkData && oldLinkData.href !== linkData.href) {
+                    handleDeletedLink(oldLinkData.href);
+                }
+                closeModal(manageToolsModal);
             }
         }
 
@@ -390,9 +532,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
-        btn.addEventListener('click', () => closeModal(btn.closest('.modal')));
+        const modal = btn.closest('.modal');
+        if (modal && modal.id === 'confirm-modal') return;
+        btn.addEventListener('click', () => closeModal(modal));
     });
     document.querySelectorAll('.modal').forEach(modal => {
+        if (modal.id === 'confirm-modal') return;
         modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(modal); });
     });
 
@@ -447,12 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <fieldset style="border: 1px solid var(--color-slate-700); padding: 1rem; border-radius: 0.5rem; margin-top: 1.5rem; margin-bottom: 1.5rem;">
             <legend style="padding: 0 0.5rem; color: var(--color-slate-300); font-size: 0.875rem; width: auto;">Links</legend>
             
-            
-            <datalist id="url-suggestions">
-                <option value="https://heroicons.com/">
-                <option value="https://mauricio173.github.io/webpages/">
-            
-            </datalist>
+            <datalist id="url-suggestions"></datalist>
   
             <div class="form-group" style="margin-bottom: 0;">
               <label>Links Adicionais (para o modal)</label>
@@ -496,33 +636,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    deleteToolBtn.addEventListener('click', () => {
+    function deleteTool(toolId) {
+        const tool = TOOLS.find(t => t.id === toolId);
+        if (!tool) return;
+        
+        const linksToRemove = [...tool.modalLinks];
+        TOOLS = TOOLS.filter(t => t.id !== toolId);
+        saveTools();
+        
+        linksToRemove.forEach(link => handleDeletedLink(link.href));
+        
+        renderAll();
+    }
+
+    deleteToolBtn.addEventListener('click', async () => {
         const toolId = toolSelect.value;
         const tool = TOOLS.find(t => t.id === toolId);
-        if (tool && confirm(`Tem certeza que deseja excluir a ferramenta "${tool.name}"?`)) {
-            TOOLS = TOOLS.filter(t => t.id !== toolId);
-            saveTools();
-            renderAll();
-            linksManagementSection.style.display = 'none';
-            editToolBtn.disabled = true;
-            deleteToolBtn.disabled = true;
-        }
-    });
-
-    directDeleteBtn.addEventListener('click', () => {
-        const toolId = infoModal.dataset.currentToolId;
-        const tool = TOOLS.find(t => t.id === toolId);
-        if (tool && confirm(`Tem certeza que deseja excluir a ferramenta "${tool.name}"?`)) {
-            TOOLS = TOOLS.filter(t => t.id !== toolId);
-            saveTools();
-            renderAll();
-            closeModal(infoModal);
-
-            if (toolSelect.value === toolId) {
-                toolSelect.value = '';
+        if (tool) {
+            const confirmed = await showConfirmModal(`Tem certeza que deseja excluir a ferramenta "${tool.name}"?`);
+            if (confirmed) {
+                deleteTool(toolId);
                 linksManagementSection.style.display = 'none';
                 editToolBtn.disabled = true;
                 deleteToolBtn.disabled = true;
+            }
+        }
+    });
+
+    directDeleteBtn.addEventListener('click', async () => {
+        const toolId = infoModal.dataset.currentToolId;
+        const tool = TOOLS.find(t => t.id === toolId);
+        if (tool) {
+            const confirmed = await showConfirmModal(`Tem certeza que deseja excluir a ferramenta "${tool.name}"?`);
+            if (confirmed) {
+                deleteTool(toolId);
+                closeModal(infoModal);
+
+                if (toolSelect.value === toolId) {
+                    toolSelect.value = '';
+                    linksManagementSection.style.display = 'none';
+                    editToolBtn.disabled = true;
+                    deleteToolBtn.disabled = true;
+                }
             }
         }
     });
@@ -536,12 +691,13 @@ document.addEventListener('DOMContentLoaded', () => {
             title: 'Adicionar Novo Link',
             fields: `
                 <div class="form-group"><label for="name">Nome do Link</label><input type="text" name="name" required></div>
-                <div class="form-group"><label for="href">URL do Link</label><input type="text" name="href" required></div>
+                <div class="form-group"><label for="href">URL do Link</label><input type="text" name="href" required list="url-suggestions"></div>
+                <datalist id="url-suggestions"></datalist>
             `
         });
     });
 
-    linksList.addEventListener('click', (e) => {
+    linksList.addEventListener('click', async (e) => {
         const editBtn = e.target.closest('.edit-link-btn');
         const deleteBtn = e.target.closest('.delete-link-btn');
         const toolId = toolSelect.value;
@@ -558,7 +714,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: 'Editar Link',
                 fields: `
                     <div class="form-group"><label for="name">Nome do Link</label><input type="text" name="name" value="${link.name}" required></div>
-                    <div class="form-group"><label for="href">URL do Link</label><input type="text" name="href" value="${link.href}" required></div>
+                    <div class="form-group"><label for="href">URL do Link</label><input type="text" name="href" value="${link.href}" required list="url-suggestions"></div>
+                    <datalist id="url-suggestions"></datalist>
                 `
             });
         }
@@ -566,9 +723,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (deleteBtn) {
             const linkIndex = parseInt(deleteBtn.dataset.index, 10);
             const link = tool.modalLinks[linkIndex];
-            if (confirm(`Tem certeza que deseja excluir o link "${link.name}"?`)) {
+            const confirmed = await showConfirmModal(`Tem certeza que deseja excluir o link "${link.name}"?`);
+            if (confirmed) {
                 tool.modalLinks.splice(linkIndex, 1);
                 saveTools();
+                handleDeletedLink(link.href);
                 renderAll();
                 renderLinksList(toolId);
             }
@@ -577,7 +736,116 @@ document.addEventListener('DOMContentLoaded', () => {
 
     formCancelBtn.addEventListener('click', () => closeModal(formModal));
 
+    exportDataBtn.addEventListener('click', () => {
+        const dashboardData = {
+            tools: TOOLS,
+            allLinks: ALL_LINKS,
+            deletedLinks: DELETED_LINKS,
+        };
+    
+        const fileContent = JSON.stringify(dashboardData, null, 2);
+        const blob = new Blob([fileContent], { type: 'application/json' });
+        const link = document.createElement('a');
+        
+        link.href = URL.createObjectURL(blob);
+        link.download = 'dashboard_data.json';
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    });
+
+    importDataBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        importFileInput.click();
+        closeNav();
+    });
+    
+    importFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+    
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+    
+                if (Array.isArray(data.tools) && Array.isArray(data.allLinks) && Array.isArray(data.deletedLinks)) {
+                    TOOLS = data.tools;
+                    ALL_LINKS = data.allLinks;
+                    DELETED_LINKS = data.deletedLinks;
+    
+                    saveTools();
+                    saveAllLinks();
+                    saveDeletedLinks();
+                    renderAll();
+    
+                    alert('Dados importados com sucesso!');
+                } else {
+                    throw new Error('Formato de arquivo inválido. O arquivo deve conter as chaves: tools, allLinks, deletedLinks.');
+                }
+            } catch (error) {
+                console.error('Erro ao importar dados:', error);
+                alert(`Erro ao importar o arquivo: ${error.message}`);
+            } finally {
+                importFileInput.value = '';
+            }
+        };
+        reader.onerror = () => {
+            alert('Erro ao ler o arquivo.');
+            importFileInput.value = '';
+        };
+        reader.readAsText(file);
+    });
+
+    // --- User Menu & Logout Logic ---
+    // Adiciona o listener ao corpo do documento para delegar eventos,
+    // já que o conteúdo do menu do usuário é dinâmico.
+    document.body.addEventListener('click', (e) => {
+        // Lógica de Logout
+        const logoutBtn = e.target.closest('#logout-btn');
+        if (logoutBtn) {
+            e.preventDefault();
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().signOut()
+                    .then(() => {
+                        console.log('Usuário deslogado com sucesso.');
+                        window.location.href = 'index.html'; // Recarrega a página
+                    })
+                    .catch((error) => {
+                        console.error('Erro ao fazer logout:', error);
+                        alert('Ocorreu um erro ao tentar sair.');
+                    });
+            }
+            return;
+        }
+
+        // Lógica para Abrir/Fechar Dropdown
+        const userMenuTrigger = e.target.closest('#user-menu-trigger');
+        const userMenuDropdown = document.getElementById('user-menu-dropdown');
+
+        if (userMenuTrigger) {
+            const isExpanded = userMenuTrigger.getAttribute('aria-expanded') === 'true';
+            userMenuTrigger.setAttribute('aria-expanded', !isExpanded);
+            userMenuDropdown.classList.toggle('active');
+            return;
+        }
+
+        // Fechar o menu ao clicar fora
+        if (userMenuDropdown && userMenuDropdown.classList.contains('active')) {
+            const trigger = document.getElementById('user-menu-trigger');
+            if (!trigger.contains(e.target) && !userMenuDropdown.contains(e.target)) {
+                trigger.setAttribute('aria-expanded', 'false');
+                userMenuDropdown.classList.remove('active');
+            }
+        }
+    });
+
     // --- Initialization ---
     loadTools();
+    loadAllLinks();
+    loadDeletedLinks();
     renderAll();
 });
