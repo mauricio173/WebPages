@@ -225,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Modal Control ---
     function openModal(modalEl) { modalEl.classList.add('active'); }
     function closeModal(modalEl) { 
+        if (!modalEl) return;
         modalEl.classList.remove('active');
         if (modalEl === infoModal) {
             // Limpe o botão Excluir dinamicamente adicionado
@@ -800,46 +801,126 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     });
 
-    // --- User Menu & Logout Logic ---
-    // Adiciona o listener ao corpo do documento para delegar eventos,
-    // já que o conteúdo do menu do usuário é dinâmico.
-    document.body.addEventListener('click', (e) => {
-        // Lógica de Logout
-        const logoutBtn = e.target.closest('#logout-btn');
-        if (logoutBtn) {
-            e.preventDefault();
-            if (typeof firebase !== 'undefined' && firebase.auth) {
-                firebase.auth().signOut()
-                    .then(() => {
-                        console.log('Usuário deslogado com sucesso.');
-                        window.location.href = 'index.html'; // Recarrega a página
-                    })
-                    .catch((error) => {
-                        console.error('Erro ao fazer logout:', error);
-                        alert('Ocorreu um erro ao tentar sair.');
-                    });
-            }
+    // --- Login Modal Logic ---
+    function setupLoginModal() {
+        if (typeof firebase === 'undefined' || !firebase.apps.length) {
+            console.error('Firebase SDK não carregado ou inicializado.');
             return;
         }
 
-        // Lógica para Abrir/Fechar Dropdown
-        const userMenuTrigger = e.target.closest('#user-menu-trigger');
-        const userMenuDropdown = document.getElementById('user-menu-dropdown');
+        const auth = firebase.auth();
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
 
+        const loginModal = document.getElementById('login-modal');
+        const loginForm = document.getElementById('login-form');
+        const googleLoginBtn = document.getElementById('google-login');
+        const errorMessageDiv = document.getElementById('login-error-message');
+        
+        const formTitle = document.getElementById('login-form-title');
+        const formSubtitle = document.getElementById('login-form-subtitle');
+        const submitBtn = document.getElementById('login-submit-btn');
+        const toggleText = document.getElementById('login-toggle-text');
+
+        let isLoginMode = true;
+
+        const toggleHandler = (e) => {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+            updateFormUI();
+        };
+
+        function updateFormUI() {
+            if (isLoginMode) {
+                formTitle.textContent = 'Bem vindo de volta';
+                formSubtitle.textContent = 'Por favor, insira seus dados para fazer login.';
+                submitBtn.textContent = 'Conecte-se';
+                toggleText.innerHTML = `Não tem uma conta? <a href="#" id="login-toggle-link">Criar uma</a>`;
+            } else {
+                formTitle.textContent = 'Criar uma conta';
+                formSubtitle.textContent = 'Por favor, insira seus dados para se inscrever.';
+                submitBtn.textContent = 'Inscrever-se';
+                toggleText.innerHTML = `Já tem uma conta? <a href="#" id="login-toggle-link">Conecte-se</a>`;
+            }
+            document.getElementById('login-toggle-link').addEventListener('click', toggleHandler);
+            errorMessageDiv.style.display = 'none';
+        }
+
+        function showAuthError(error) {
+            let message = 'Ocorreu um erro. Tente novamente.';
+            switch (error.code) {
+                case 'auth/user-not-found': case 'auth/wrong-password':
+                    message = 'E-mail ou senha inválidos.'; break;
+                case 'auth/email-already-in-use':
+                    message = 'Este e-mail já está em uso.'; break;
+                case 'auth/weak-password':
+                    message = 'A senha deve ter pelo menos 6 caracteres.'; break;
+                case 'auth/invalid-email':
+                    message = 'O formato do e-mail é inválido.'; break;
+                case 'auth/popup-closed-by-user':
+                    message = 'A janela de login do Google foi fechada.'; break;
+            }
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.style.display = 'block';
+        }
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            errorMessageDiv.style.display = 'none';
+
+            const action = isLoginMode 
+                ? auth.signInWithEmailAndPassword(email, password)
+                : auth.createUserWithEmailAndPassword(email, password);
+
+            action.then(userCredential => {
+                console.log('Sucesso:', userCredential.user);
+                closeModal(loginModal);
+            }).catch(showAuthError);
+        });
+
+        googleLoginBtn.addEventListener('click', () => {
+            errorMessageDiv.style.display = 'none';
+            auth.signInWithPopup(googleProvider).then(result => {
+                console.log('Login com Google bem-sucedido:', result.user);
+                closeModal(loginModal);
+            }).catch(showAuthError);
+        });
+
+        // Setup initial state
+        updateFormUI();
+    }
+
+
+    // --- Delegated Event Listeners & Initialization ---
+    document.body.addEventListener('click', (e) => {
+        // Lógica de Logout
+        if (e.target.closest('#logout-btn')) {
+            e.preventDefault();
+            firebase.auth().signOut().catch(error => console.error('Erro ao fazer logout:', error));
+        }
+
+        // Lógica para Abrir/Fechar Dropdown do Usuário
+        const userMenuTrigger = e.target.closest('#user-menu-trigger');
         if (userMenuTrigger) {
+            const userMenuDropdown = document.getElementById('user-menu-dropdown');
             const isExpanded = userMenuTrigger.getAttribute('aria-expanded') === 'true';
             userMenuTrigger.setAttribute('aria-expanded', !isExpanded);
             userMenuDropdown.classList.toggle('active');
             return;
         }
+        
+        // Fechar o menu do usuário ao clicar fora
+        const activeDropdown = document.querySelector('.user-menu-dropdown.active');
+        if (activeDropdown && !e.target.closest('.user-menu')) {
+            activeDropdown.classList.remove('active');
+            document.getElementById('user-menu-trigger').setAttribute('aria-expanded', 'false');
+        }
 
-        // Fechar o menu ao clicar fora
-        if (userMenuDropdown && userMenuDropdown.classList.contains('active')) {
-            const trigger = document.getElementById('user-menu-trigger');
-            if (!trigger.contains(e.target) && !userMenuDropdown.contains(e.target)) {
-                trigger.setAttribute('aria-expanded', 'false');
-                userMenuDropdown.classList.remove('active');
-            }
+        // Lógica para Abrir Modal de Login
+        if (e.target.closest('#open-login-modal-btn')) {
+            e.preventDefault();
+            openModal(document.getElementById('login-modal'));
         }
     });
 
@@ -848,4 +929,5 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAllLinks();
     loadDeletedLinks();
     renderAll();
+    setupLoginModal(); // Inicializa a lógica do modal de login
 });
